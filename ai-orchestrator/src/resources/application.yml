@@ -1,0 +1,14 @@
+server:
+  port: 8080
+
+openrouter:
+  api-key: ${OPENROUTER_API_KEY}
+  base-url: https://openrouter.ai/api/v1
+
+tavily:
+  api-key: ${TAVILY_API_KEY}
+
+models:
+  research: google/gemini-2.5-flash
+  coding: z-ai/glm-5.2
+  review: openai/gpt-4.1-mini
