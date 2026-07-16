@@ -1,13 +1,48 @@
-package com.example.multiagent.model;
+package com.example.multiagent.model.dto;
 
-import lombok.Builder;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Builder
+import java.util.List;
+
 public record CodingResult(
 
-        String code,
+        @JsonProperty("projectName")
+        String projectName,
 
+        @JsonProperty("description")
+        String description,
+
+        @JsonProperty("files")
+        List<GeneratedFile> files,
+
+        @JsonProperty("explanation")
         String explanation
 
 ) {
+
+    public record GeneratedFile(
+
+            @JsonProperty("path")
+            String path,
+
+            @JsonProperty("content")
+            String content
+
+    ) {
+    }
+
+
+    public String code() {
+
+        StringBuilder builder = new StringBuilder();
+
+        for (GeneratedFile file : files) {
+            builder.append("\n\n===== ")
+                    .append(file.path())
+                    .append(" =====\n\n")
+                    .append(file.content());
+        }
+
+        return builder.toString();
+    }
 }

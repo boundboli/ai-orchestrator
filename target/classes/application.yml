@@ -11,6 +11,6 @@ tavily:
 
 
 models:
-  research: google/gemini-2.5-flash
-  coding: z-ai/glm-5.2
-  review: openai/gpt-4.1-mini
+  research: openrouter/free
+  coding: openrouter/free
+  review: openrouter/free

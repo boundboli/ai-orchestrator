@@ -1,4 +1,4 @@
-package com.example.multiagent.model;
+package com.example.multiagent.model.dto;
 
 import lombok.Builder;
 

@@ -1,5 +1,6 @@
-package com.example.multiagent.model;
+package com.example.multiagent.model.dto;
 
+import com.example.multiagent.model.ReviewResult;
 import lombok.Builder;
 
 @Builder

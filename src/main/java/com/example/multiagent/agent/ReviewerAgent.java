@@ -1,5 +1,6 @@
 package com.example.multiagent.agent;
 
+import com.example.multiagent.model.dto.ReviewRequest;
 import com.example.multiagent.model.ReviewResult;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;

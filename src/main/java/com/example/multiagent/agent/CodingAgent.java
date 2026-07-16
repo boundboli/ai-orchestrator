@@ -1,5 +1,7 @@
 package com.example.multiagent.agent;
 
+import com.example.multiagent.model.dto.CodingRequest;
+import com.example.multiagent.model.dto.CodingResult;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 

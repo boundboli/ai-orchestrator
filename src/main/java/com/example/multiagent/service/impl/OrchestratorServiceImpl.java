@@ -2,111 +2,132 @@ package com.example.multiagent.service.impl;
 
 import com.example.multiagent.agent.CodingAgent;
 import com.example.multiagent.agent.ResearchAgent;
-import com.example.multiagent.agent.ReviewAgent;
+import com.example.multiagent.agent.ReviewerAgent;
+
 import com.example.multiagent.model.AgentResponse;
 import com.example.multiagent.model.TaskContext;
+import com.example.multiagent.model.ReviewResult;
+
+import com.example.multiagent.model.dto.CodingRequest;
+import com.example.multiagent.model.dto.CodingResult;
+import com.example.multiagent.model.dto.ResearchResult;
+import com.example.multiagent.model.dto.ReviewRequest;
+
+import com.example.multiagent.service.CodeStorageService;
 import com.example.multiagent.service.OrchestratorService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import java.nio.file.Path;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class OrchestratorServiceImpl implements OrchestratorService {
+public class OrchestratorServiceImpl implements com.example.multiagent.service.OrchestratorService {
+
 
     private static final int MAX_ITERATIONS = 3;
 
+
     private final ResearchAgent researchAgent;
     private final CodingAgent codingAgent;
-    private final ReviewAgent reviewAgent;
+    private final ReviewerAgent reviewerAgent;
+    private final CodeStorageService codeStorageService;
+
 
     @Override
     public AgentResponse execute(String userRequest) {
+
 
         TaskContext context = TaskContext.builder()
                 .userRequest(userRequest)
                 .build();
 
-        // Research
-        context.setResearchReport(
-                researchAgent.research(userRequest)
+
+   
+        ResearchResult researchResult = researchAgent.research(userRequest);
+
+        context.setResearchResult(researchResult);
+
+
+
+    
+        CodingResult codingResult = codingAgent.generate(
+                CodingRequest.builder()
+                        .userRequest(userRequest)
+                        .researchReport(researchResult.report())
+                        .build()
         );
 
-        // First generation
-        context.setGeneratedCode(
-                codingAgent.generate(
-                        buildCodingPrompt(context)
-                )
-        );
+
+        context.setCodingResult(codingResult);
+
+
+
+
+        codeStorageService.saveProject(codingResult);
+
+
+
 
         while (context.getIteration() < MAX_ITERATIONS) {
 
-            context.setReviewResult(
-                    reviewAgent.review(
-                            context.getGeneratedCode()
-                    )
+
+            String generatedCode = codingResult.files()
+                    .stream()
+                    .map(CodingResult.GeneratedFile::content)
+                    .collect(Collectors.joining("\n\n"));
+
+
+
+            ReviewResult review = reviewerAgent.review(
+                    ReviewRequest.builder()
+                            .userRequest(userRequest)
+                            .generatedCode(generatedCode)
+                            .build()
             );
 
-            if (context.isApproved()) {
+
+            context.addReview(review);
+
+
+
+         
+            if (review.isApproved()) {
                 break;
             }
 
-            context.setIteration(
-                    context.getIteration() + 1
+
+
+            context.nextIteration();
+
+
+
+  
+            codingResult = codingAgent.generate(
+                    CodingRequest.builder()
+                            .userRequest(userRequest)
+                            .researchReport(researchResult.report())
+                            .previousCode(generatedCode)
+                            .reviewResult(review)
+                            .build()
             );
 
-            context.setGeneratedCode(
-                    codingAgent.generate(
-                            buildImprovementPrompt(context)
-                    )
-            );
+
+            context.setCodingResult(codingResult);
+
+
+
+            codeStorageService.saveProject(codingResult);
         }
 
+
+
         return AgentResponse.builder()
-                .status(context.isApproved() ? "SUCCESS" : "MAX_ITERATIONS_REACHED")
-                .iterations(context.getIteration())
-                .result(context.getGeneratedCode())
-                .build();
-    }
-
-    private String buildCodingPrompt(TaskContext context) {
-
-        return """
-                User request:
-                                
-                %s
-                
-                Research:
-                                
-                %s
-                """.formatted(
-                context.getUserRequest(),
-                context.getResearchReport()
-        );
-    }
-
-    private String buildImprovementPrompt(TaskContext context) {
-
-        return """
-                Improve the following code.
-
-                Original request:
-
-                %s
-
-                Existing code:
-
-                %s
-
-                Reviewer feedback:
-
-                %s
-                """.formatted(
-                context.getUserRequest(),
-                context.getGeneratedCode(),
-                String.join(
-                        "\n",
-                        context.getReviewResult().getFeedback()
+                .result(
+                        "Project generated successfully: "
+                                + codingResult.projectName()
                 )
-        );
+                .build();
     }
 }
